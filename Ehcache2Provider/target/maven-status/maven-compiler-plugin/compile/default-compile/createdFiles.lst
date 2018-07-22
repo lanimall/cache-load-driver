@@ -1,0 +1,12 @@
+gov/sag/cache/loaders/providers/ehcache2/resources/cachelisteners/CacheConsoleEventListenerFactory.class
+gov/sag/cache/loaders/providers/ehcache2/resources/cachewriters/TestCacheWriterNoOp.class
+gov/sag/cache/loaders/providers/ehcache2/resources/cacheloaders/TestReadThroughFactory.class
+gov/sag/cache/loaders/providers/ehcache2/resources/cachewriters/TestCacheWriterDeleteCacheEntriesFactory.class
+gov/sag/cache/loaders/providers/ehcache2/Ehcache2StringCacheFactory.class
+gov/sag/cache/loaders/providers/ehcache2/resources/CacheManagerUtils.class
+gov/sag/cache/loaders/providers/ehcache2/metrics/EhCacheWriterStatistics.class
+gov/sag/cache/loaders/providers/ehcache2/resources/cachelisteners/CacheConsoleEventListener.class
+gov/sag/cache/loaders/providers/ehcache2/Ehcache2Cache.class
+gov/sag/cache/loaders/providers/ehcache2/resources/cacheloaders/CustomCacheLoader.class
+gov/sag/cache/loaders/providers/ehcache2/resources/cachewriters/TestCacheWriterNoOpFactory.class
+gov/sag/cache/loaders/providers/ehcache2/resources/cachewriters/TestCacheWriterDeleteCacheEntries.class

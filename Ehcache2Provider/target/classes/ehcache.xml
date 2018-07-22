@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<ehcache xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="xsds/ehcache4.xsd" updateCheck="false"
+         monitoring="autodetect" dynamicConfig="true" name="TestCacheManager-Standalone">
+
+    <defaultCache eternal="true" overflowToOffHeap="false"/>
+
+    <!-- maxEntriesInCache="1000000" -->
+    <cache name="testCache"
+           maxEntriesLocalHeap="100000"
+           timeToLiveSeconds="1800">
+    </cache>
+</ehcache>

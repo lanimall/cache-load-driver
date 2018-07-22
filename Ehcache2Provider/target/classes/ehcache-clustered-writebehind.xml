@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<ehcache xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="xsds/ehcache4.xsd" updateCheck="false"
+         monitoring="autodetect" dynamicConfig="true" name="TestCacheManager">
+
+    <!-- Add the terracottaConfig element to specify where to find the configuration
+        specific to the server array. In this case, the configuration is retrieved
+        from the server array itself. -->
+    <terracottaConfig url="tc.host.server1:9510,tc.host.server2:9510"/>
+
+    <defaultCache eternal="true" overflowToOffHeap="false"/>
+
+    <!-- maxEntriesLocalHeap="1000" eternal="false"
+           timeToLiveSeconds="1800" maxEntriesInCache="100000" -->
+    <cache name="testWriteBehind" maxEntriesLocalHeap="10000"
+           maxEntriesInCache="100000"
+           eternal="true"
+           statistics="true">
+        <terracotta>
+            <nonstop immediateTimeout="true" timeoutMillis="30000">
+                <timeoutBehavior type="exception" />
+            </nonstop>
+        </terracotta>
+        <cacheWriter
+                writeMode="write-behind"
+                notifyListenersOnException="true"
+                maxWriteDelay="5"
+                writeBehindConcurrency="5"
+                rateLimitPerSecond="100"
+                writeCoalescing="false"
+                writeBatching="true"
+                writeBatchSize="200"
+                retryAttempts="3"
+                retryAttemptDelaySeconds="3">
+            <cacheWriterFactory class="gov.softwareag.demo.cache.ehcache2.TestCacheWriterDeleteCacheEntriesFactory"/>
+        </cacheWriter>
+    </cache>
+</ehcache>

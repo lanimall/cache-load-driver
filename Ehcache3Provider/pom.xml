@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>cache-load-driver-parent</artifactId>
+        <groupId>gov.sag.cache.loaders</groupId>
+        <version>1.0.0</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>Ehcache3Provider</artifactId>
+
+    <properties>
+        <ehcache.version>3.5.2</ehcache.version>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>1.7</maven.compiler.source>
+        <ehcache.config.path>classpath:/ehcache.xml</ehcache.config.path>
+        <tc.config.url>terracotta://localhost:9410/clustered</tc.config.url>
+        <cache.loaders.CacheProviderFactoryClass>gov.sag.cache.loaders.providers.ehcache3.Ehcache3CacheStringFactory</cache.loaders.CacheProviderFactoryClass>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>gov.sag.cache.loaders</groupId>
+            <artifactId>MainDriver</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>appassembler-maven-plugin</artifactId>
+                <version>1.3.1</version>
+                <executions>
+                    <execution>
+                        <id>assemble</id>
+                        <goals>
+                            <goal>assemble</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <repositoryLayout>flat</repositoryLayout>
+                    <projectArtifactFirstInClassPath>true</projectArtifactFirstInClassPath>
+                    <!--<useAllProjectDependencies>true</useAllProjectDependencies>-->
+                    <!--<useWildcardClassPath>true</useWildcardClassPath>-->
+                    <extraJvmArguments>-Xms1g -Xmx2g -XX:MaxPermSize=256m
+                        -XX:+UseParallelOldGC -XX:+UseCompressedOops
+                        -XX:MaxDirectMemorySize=10G
+                        -Dehcache.config.path=${ehcache.config.path}
+                        -Dtc.config.url=${tc.config.url}
+                        -Dehcache.obj.value.size=4096
+                        -DCacheProviderFactoryClass=${cache.loaders.CacheProviderFactoryClass}
+                    </extraJvmArguments>
+                    <programs>
+                        <program>
+                            <mainClass>gov.sag.cache.loaders.maindriver.Main</mainClass>
+                            <name>LaunchGeneric</name>
+                        </program>
+                        <program>
+                            <mainClass>gov.sag.cache.loaders.maindriver.Main</mainClass>
+                            <name>LaunchDefault</name>
+                            <commandLineArguments>
+                                <commandLineArgument>-c testCache</commandLineArgument>
+                                <commandLineArgument>--empty-cache</commandLineArgument>
+                                <commandLineArgument>--fill-cache</commandLineArgument>
+                                <commandLineArgument>--fill-thread-count 10</commandLineArgument>
+                                <commandLineArgument>--entries 1000000</commandLineArgument>
+                                <commandLineArgument>-r 10</commandLineArgument>
+                                <commandLineArgument>-w 10</commandLineArgument>
+                                <commandLineArgument>-d 10</commandLineArgument>
+                            </commandLineArguments>
+                        </program>
+                        <program>
+                            <mainClass>gov.sag.cache.loaders.maindriver.Main</mainClass>
+                            <name>LaunchWithDefaultCache</name>
+                            <commandLineArguments>
+                                <commandLineArgument>-c testCache</commandLineArgument>
+                            </commandLineArguments>
+                        </program>
+                        <program>
+                            <mainClass>gov.sag.cache.loaders.maindriver.Main</mainClass>
+                            <name>LaunchFillCacheOnly</name>
+                            <commandLineArguments>
+                                <commandLineArgument>-c testCache</commandLineArgument>
+                                <commandLineArgument>--empty-cache</commandLineArgument>
+                                <commandLineArgument>--fill-cache</commandLineArgument>
+                                <commandLineArgument>--fill-thread-count 10</commandLineArgument>
+                                <commandLineArgument>--entries 1000000</commandLineArgument>
+                            </commandLineArguments>
+                        </program>
+                        <program>
+                            <mainClass>gov.sag.cache.loaders.maindriver.Main</mainClass>
+                            <name>LaunchWriteBehindTest</name>
+                            <commandLineArguments>
+                                <commandLineArgument>-c testWriteBehind</commandLineArgument>
+                                <commandLineArgument>--empty-cache</commandLineArgument>
+                                <commandLineArgument>-e 1000000</commandLineArgument>
+                                <commandLineArgument>-w 8</commandLineArgument>
+                                <commandLineArgument>-l 300</commandLineArgument>
+                                <commandLineArgument>--sleep-before-exit=600</commandLineArgument>
+                            </commandLineArguments>
+                            <jvmSettings>
+                                <initialMemorySize>1g</initialMemorySize>
+                                <maxMemorySize>2g</maxMemorySize>
+                                <systemProperties></systemProperties>
+                                <extraArguments>
+                                    <extraArgument>-XX:MaxDirectMemorySize=10G</extraArgument>
+                                    <extraArgument>-Dcom.tc.productkey.path=${ehcache.ee.license}</extraArgument>
+                                    <extraArgument>-Dtc.config.url=${tc.config.url}</extraArgument>
+                                    <extraArgument>-Dehcache.obj.value.size=4096</extraArgument>
+                                    <extraArgument>-Dehcache.config.path=classpath:/ehcache210-writebehind.xml</extraArgument>
+                                    <extraArgument>-Dehcache.put.usewriter=true</extraArgument>
+                                </extraArguments>
+                            </jvmSettings>
+                        </program>
+                    </programs>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+
+    <profiles>
+        <profile>
+            <id>ehcache3-oss-standalone</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <ehcache.config.path>classpath:ehcache.xml</ehcache.config.path>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>org.ehcache</groupId>
+                    <artifactId>ehcache</artifactId>
+                    <version>${ehcache.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>ehcache3-oss-clustered</id>
+            <properties>
+                <ehcache.config.path>classpath:ehcache-clustered.xml</ehcache.config.path>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>org.ehcache</groupId>
+                    <artifactId>ehcache</artifactId>
+                    <version>${ehcache.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.ehcache</groupId>
+                    <artifactId>ehcache-clustered</artifactId>
+                    <version>${ehcache.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>ehcache3-ee-standalone</id>
+            <properties>
+                <ehcache.ee.license>${user.home}/terracotta-license.key</ehcache.ee.license>
+                <net.sf.ehcache.configurationResourceName>classpath:ehcache-ee.xml</net.sf.ehcache.configurationResourceName>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>org.ehcache</groupId>
+                    <artifactId>ehcache-ee</artifactId>
+                    <version>${ehcache.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>ehcache3-ee-clustered</id>
+            <properties>
+                <ehcache.ee.license>${user.home}/terracotta-license.key</ehcache.ee.license>
+                <net.sf.ehcache.configurationResourceName>classpath:ehcache-ee-clustered.xml
+                </net.sf.ehcache.configurationResourceName>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>org.ehcache</groupId>
+                    <artifactId>ehcache-ee</artifactId>
+                    <version>${ehcache.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.ehcache</groupId>
+                    <artifactId>ehcache-ee-clustered</artifactId>
+                    <version>${ehcache.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
+</project>
