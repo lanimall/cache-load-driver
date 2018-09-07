@@ -5,8 +5,6 @@ import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.Status;
 
-import java.io.IOException;
-
 public class Ehcache3StringCache implements GenericCache<String, String> {
 
     // Create a cache manager
@@ -72,9 +70,20 @@ public class Ehcache3StringCache implements GenericCache<String, String> {
         cache.remove(key);
     }
 
+
     @Override
-    public void batchPut(Runnable operation) {
-        operation.run();
+    public boolean isBulkLoadAvailable() {
+        return false;
+    }
+
+    @Override
+    public void enableBulkLoad() {
+        throw new IllegalStateException("Not available");
+    }
+
+    @Override
+    public void disableBulkLoad() {
+        throw new IllegalStateException("Not available");
     }
 
     @Override

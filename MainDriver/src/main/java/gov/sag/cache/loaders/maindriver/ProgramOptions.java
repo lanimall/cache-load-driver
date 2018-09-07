@@ -97,6 +97,11 @@ public interface ProgramOptions {
     public int getFillCacheThreadCount();
 
     @Option(
+            longName = "fill-disable-bulkload",
+            description = "Disable bulkloading on initial fill operation")
+    public boolean disableBulkLoadOnFill();
+
+    @Option(
             shortName = "e",
             longName = "entries",
             description = "number of entries",

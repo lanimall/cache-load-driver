@@ -28,21 +28,21 @@
             <id>Java6</id>
             <properties>
                 <maven.compiler.target>1.6</maven.compiler.target>
-                <maven.compiler.source>1.6</maven.compiler.source>
             </properties>
         </profile>
         <profile>
             <id>Java7</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
             <properties>
                 <maven.compiler.target>1.7</maven.compiler.target>
-                <maven.compiler.source>1.7</maven.compiler.source>
             </properties>
         </profile>
         <profile>
             <id>Java8</id>
             <properties>
                 <maven.compiler.target>1.8</maven.compiler.target>
-                <maven.compiler.source>1.8</maven.compiler.source>
             </properties>
         </profile>
         <profile>
@@ -83,7 +83,7 @@
             </dependency>
             <dependency>
                 <groupId>gov.sag.cache.loaders</groupId>
-                <artifactId>common-utils</artifactId>
+                <artifactId>CommonUtils</artifactId>
                 <version>1.0.0</version>
             </dependency>
             <dependency>
@@ -129,6 +129,15 @@
                 </includes>
             </resource>
         </resources>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>appassembler-maven-plugin</artifactId>
+                    <version>1.10</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

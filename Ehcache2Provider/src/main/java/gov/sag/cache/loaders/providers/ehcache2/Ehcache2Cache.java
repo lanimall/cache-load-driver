@@ -58,13 +58,18 @@ public class Ehcache2Cache<K, V> implements GenericCache<K, V> {
     }
 
     @Override
-    public void batchPut(Runnable operation) {
+    public boolean isBulkLoadAvailable() {
+        return true;
+    }
+
+    @Override
+    public void enableBulkLoad() {
         cache.setNodeBulkLoadEnabled(true);
-        try {
-            operation.run();
-        } finally {
-            cache.setNodeBulkLoadEnabled(false);
-        }
+    }
+
+    @Override
+    public void disableBulkLoad() {
+        cache.setNodeBulkLoadEnabled(false);
     }
 
     @Override

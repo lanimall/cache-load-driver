@@ -1,8 +1,6 @@
 package gov.sag.cache.loaders.maindriver.cache;
 
 import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
 
 /**
  * Created by fabien.sanglier on 7/20/18.

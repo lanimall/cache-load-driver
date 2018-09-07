@@ -1,7 +1,8 @@
 package gov.sag.cache.loaders.providers.ehcache2.resources.cachewriters;
 
 import com.codahale.metrics.ConsoleReporter;
-import gov.sag.cache.loaders.providers.ehcache2.metrics.EhCacheWriterStatistics;
+import gov.sag.cache.loaders.providers.ehcache2.metrics.EhcacheWriterStatistics;
+import gov.sag.cache.loaders.providers.ehcache2.metrics.EhcacheWriterStatisticsController;
 import net.sf.ehcache.CacheEntry;
 import net.sf.ehcache.CacheException;
 import net.sf.ehcache.Ehcache;
@@ -16,25 +17,24 @@ import java.util.concurrent.TimeUnit;
 
 
 public class TestCacheWriterDeleteCacheEntries implements CacheWriter {
-    private final EhCacheWriterStatistics counters;
+    private final EhcacheWriterStatistics statistics;
     private final Ehcache parentCache;
 
-    public TestCacheWriterDeleteCacheEntries(Ehcache cache) {
+    public TestCacheWriterDeleteCacheEntries(Ehcache cache, EhcacheWriterStatistics statistics) {
         if(null == cache)
             throw new IllegalArgumentException("Cache cannot be null");
 
-        parentCache = cache;
-        counters = new EhCacheWriterStatistics(parentCache.getName());
+        this.parentCache = cache;
+        this.statistics = statistics;
     }
 
     @Override
     public void init() {
-        ConsoleReporter.forRegistry(counters.getMetrics()).build().start(10, TimeUnit.SECONDS);
     }
 
     @Override
     public void throwAway(Element element, SingleOperationType singleOperationType, RuntimeException e) {
-        counters.getThrowAwayRequests().inc();
+        statistics.getThrowAwayRequests().inc();
     }
 
     @Override
@@ -45,25 +45,24 @@ public class TestCacheWriterDeleteCacheEntries implements CacheWriter {
 
     @Override
     public void delete(CacheEntry arg0) throws CacheException {
-        counters.getDeleteRequests().inc();
+        statistics.getDeleteRequests().inc();
     }
 
     @Override
     public void deleteAll(Collection<CacheEntry> arg0) throws CacheException {
         for(CacheEntry e : arg0)
-            counters.getDeleteRequests().inc();
+            statistics.getDeleteRequests().inc();
     }
 
     @Override
     public void dispose() throws CacheException {
-        ConsoleReporter.forRegistry(counters.getMetrics()).build().stop();
     }
 
     @Override
     public void write(Element e) throws CacheException {
         //parentCache.removeElement(e); //CAS
         parentCache.remove(e.getObjectKey());
-        counters.getWriteRequests().inc();
+        statistics.getWriteRequests().inc();
     }
 
     @Override
@@ -75,6 +74,6 @@ public class TestCacheWriterDeleteCacheEntries implements CacheWriter {
         parentCache.removeAll(elementKeySet);
 
         for(Element e : elements)
-            counters.getWriteRequests().inc();
+            statistics.getWriteRequests().inc();
     }
 }

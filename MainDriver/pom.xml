@@ -8,13 +8,13 @@
         <version>1.0.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>cache-load-driver</artifactId>
+    <artifactId>MainDriver</artifactId>
     <version>1.0.0</version>
 
     <dependencies>
         <dependency>
             <groupId>gov.sag.cache.loaders</groupId>
-            <artifactId>common-utils</artifactId>
+            <artifactId>CommonUtils</artifactId>
         </dependency>
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>

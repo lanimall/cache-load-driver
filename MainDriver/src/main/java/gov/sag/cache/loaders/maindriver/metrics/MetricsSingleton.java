@@ -2,7 +2,9 @@ package gov.sag.cache.loaders.maindriver.metrics;
 
 import com.codahale.metrics.*;
 
-import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -14,57 +16,185 @@ public class MetricsSingleton {
     public static MetricsSingleton instance = new MetricsSingleton();
 
     private final ConcurrentHashMap<String, MetricRegistry> registries;
-    private final ConcurrentHashMap<String, ScheduledReporter> reporters;
+    private final ConcurrentHashMap<String, Reporter> reporters;
+    private final ConcurrentHashMap<String, Reporter> startedReporters;
 
     private MetricsSingleton() {
         registries = new ConcurrentHashMap<>();
         reporters = new ConcurrentHashMap<>();
+        startedReporters = new ConcurrentHashMap<>();
     }
 
     public MetricRegistry getOrCreateRegistry(String registryName){
         MetricRegistry old;
-        old = registries.putIfAbsent(registryName, new MetricRegistry());
-        if(null == old){
-            old = registries.get(registryName);
+        if(null == (old = registries.get(registryName))) {
+            old = registries.putIfAbsent(registryName, new MetricRegistry());
+            if (null == old) {
+                old = registries.get(registryName);
+            }
         }
         return old;
     }
 
-    public ScheduledReporter getOrCreateReporter(String registryName){
-        MetricRegistry registry = getOrCreateRegistry(registryName);
+    public enum ReporterType {
+        CONSOLE {
+            @Override
+            Reporter build(MetricRegistry registry) {
+                return ConsoleReporter.forRegistry(registry).build();
+            }
 
-        //ScheduledReporter reporter = JmxReporter.forRegistry(registry).build();
-        //ScheduledReporter reporter = CsvReporter.forRegistry(registry).build();
-        //ScheduledReporter reporter = Slf4jReporter.forRegistry(registry).build();
-        ScheduledReporter reporter = ConsoleReporter.forRegistry(registry).build();
-        ScheduledReporter old;
-        old = reporters.putIfAbsent(registryName, reporter);
-        if(null == old){
-            old = reporters.get(registryName);
+            @Override
+            void start(Reporter reporter) {
+                if(null != reporter)
+                    ((ConsoleReporter)reporter).start(10, TimeUnit.SECONDS);
+            }
+
+            @Override
+            void stop(Reporter reporter) {
+                if(null != reporter)
+                    ((ConsoleReporter)reporter).stop();
+            }
+        },JMX{
+            @Override
+            Reporter build(MetricRegistry registry) {
+                return JmxReporter.forRegistry(registry).build();
+            }
+            @Override
+            void start(Reporter reporter) {
+                if(null != reporter)
+                    ((JmxReporter)reporter).start();
+            }
+
+            @Override
+            void stop(Reporter reporter) {
+                if(null != reporter)
+                    ((JmxReporter)reporter).stop();
+            }
+        },CSV{
+            @Override
+            Reporter build(MetricRegistry registry) {
+                Path csvPath = FileSystems.getDefault().getPath(System.getProperty("java.io.tmpdir"),"csvReporterOutput.txt");
+                File csvFile = new File(csvPath.toUri());
+                return CsvReporter.forRegistry(registry).build(csvFile);
+            }
+            @Override
+            void start(Reporter reporter) {
+                if(null != reporter)
+                    ((CsvReporter)reporter).start(10, TimeUnit.SECONDS);
+            }
+
+            @Override
+            void stop(Reporter reporter) {
+                if(null != reporter)
+                    ((CsvReporter)reporter).stop();
+            }
+        },SLF4J{
+            @Override
+            Reporter build(MetricRegistry registry) {
+                return Slf4jReporter.forRegistry(registry).build();
+            }
+            @Override
+            void start(Reporter reporter) {
+                if(null != reporter)
+                    ((Slf4jReporter)reporter).start(10, TimeUnit.SECONDS);
+            }
+
+            @Override
+            void stop(Reporter reporter) {
+                if(null != reporter)
+                    ((Slf4jReporter)reporter).stop();
+            }
+        },NONE{
+            @Override
+            Reporter build(MetricRegistry registry) {
+                return new Reporter() {
+                    @Override
+                    public int hashCode() {
+                        return super.hashCode();
+                    }
+                };
+            }
+            @Override
+            void start(Reporter reporter) {
+                //do nothing
+                ;;
+            }
+
+            @Override
+            void stop(Reporter reporter) {
+                //do nothing
+                ;;
+            }
+        };
+
+        abstract Reporter build(MetricRegistry registry);
+        abstract void start(Reporter reporter);
+        abstract void stop(Reporter reporter);
+
+        public static ReporterType valueOfIgnoreCase(String reporterTypeStr){
+            if(null != reporterTypeStr && !"".equals(reporterTypeStr)) {
+                if (ReporterType.CONSOLE.name().equalsIgnoreCase(reporterTypeStr))
+                    return ReporterType.CONSOLE;
+                else if (ReporterType.JMX.name().equalsIgnoreCase(reporterTypeStr))
+                    return ReporterType.JMX;
+                else if (ReporterType.CSV.name().equalsIgnoreCase(reporterTypeStr))
+                    return ReporterType.CSV;
+                else if (ReporterType.SLF4J.name().equalsIgnoreCase(reporterTypeStr))
+                    return ReporterType.SLF4J;
+                else if (ReporterType.NONE.name().equalsIgnoreCase(reporterTypeStr))
+                    return ReporterType.NONE;
+                else
+                    throw new IllegalArgumentException("ReporterType [" + ((null != reporterTypeStr) ? reporterTypeStr : "null") + "] is not valid");
+            } else {
+                return ReporterType.NONE; // return the empty reporter if null / empty string is passed
+            }
+        }
+    }
+
+    public Reporter getOrCreateReporter(String registryName, ReporterType reporterType){
+        Reporter old;
+        if(null == (old = reporters.get(registryName))) {
+            MetricRegistry registry = getOrCreateRegistry(registryName);
+            old = reporters.putIfAbsent(registryName, reporterType.build(registry));
+            if (null == old) {
+                old = reporters.get(registryName);
+            }
         }
         return old;
     }
 
-    public void startReporterAll() {
+    public void startAllReporters(ReporterType reporterType) {
         for(String key : registries.keySet()){
-            startReporter(key);
+            startReporter(key, reporterType);
         }
     }
 
-    public void stopReporterAll() {
+    public void stopAllReporters(ReporterType reporterType) {
         for(String key : registries.keySet()){
-            stopReporter(key);
+            stopReporter(key, reporterType);
         }
     }
 
-    public void startReporter(String registryName) {
-        ScheduledReporter reporter = getOrCreateReporter(registryName);
-        reporter.start(10, TimeUnit.SECONDS);
+    public Reporter startReporter(String registryName, ReporterType reporterType) {
+        Reporter started;
+        if(null == (started = startedReporters.get(registryName))) {
+            started = startedReporters.putIfAbsent(registryName, getOrCreateReporter(registryName, reporterType)); //CAS
+            if (null == started) { //here, only 1 thread should be able to enter in this...
+                started = startedReporters.get(registryName);
+                reporterType.start(started);
+            }
+        }
+        return started;
     }
 
-    public void stopReporter(String registryName) {
-        ScheduledReporter reporter = getOrCreateReporter(registryName);
-        reporter.stop();
+    public void stopReporter(String registryName, ReporterType reporterType) {
+        Reporter started;
+        if(null != (started = startedReporters.get(registryName))) {
+            boolean removed = startedReporters.remove(registryName, started); //CAS
+            if (removed) { //here, only 1 thread should be able to enter in this...
+                reporterType.stop(started);
+            }
+        }
     }
 
     public String printRegistries() {

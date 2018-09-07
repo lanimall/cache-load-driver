@@ -2,8 +2,6 @@ package gov.sag.cache.loaders.maindriver.cache.impl;
 
 import gov.sag.cache.loaders.maindriver.cache.GenericCache;
 
-import java.io.IOException;
-
 /**
  * Created by fabien.sanglier on 7/20/18.
  */
@@ -49,12 +47,22 @@ public class NoopCache<K, V> implements GenericCache<K, V> {
     }
 
     @Override
-    public void batchPut(Runnable operation) {
+    public void delete(K key) {
 
     }
 
     @Override
-    public void delete(K key) {
+    public boolean isBulkLoadAvailable() {
+        return false;
+    }
+
+    @Override
+    public void enableBulkLoad() {
+
+    }
+
+    @Override
+    public void disableBulkLoad() {
 
     }
 

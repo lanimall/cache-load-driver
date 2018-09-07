@@ -12,15 +12,25 @@
     <artifactId>Ehcache2Provider</artifactId>
 
     <properties>
-        <ehcache.ee.license></ehcache.ee.license>
-        <tc.config.url>tc.host.server1:9510,tc.host.server2:9510</tc.config.url>
         <cache.loaders.CacheProviderFactoryClass>gov.sag.cache.loaders.providers.ehcache2.Ehcache2StringCacheFactory</cache.loaders.CacheProviderFactoryClass>
+        <ehcache.ee.license></ehcache.ee.license>
+        <tc.config.url>localhost:9510,localhost:9610</tc.config.url>
+        <appassembler.jvm.heap.min>1g</appassembler.jvm.heap.min>
+        <appassembler.jvm.heap.max>2g</appassembler.jvm.heap.max>
+        <appassembler.jvm.offheap.max>10g</appassembler.jvm.offheap.max>
+        <appassembler.app.obj.value.size>4096</appassembler.app.obj.value.size>
+        <appassembler.app.obj.count.max>1000000</appassembler.app.obj.count.max>
+        <appassembler.app.run.time.seconds>600</appassembler.app.run.time.seconds>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>gov.sag.cache.loaders</groupId>
             <artifactId>MainDriver</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>gov.sag.cache.loaders</groupId>
+            <artifactId>CommonUtils</artifactId>
         </dependency>
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
@@ -41,7 +51,6 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>appassembler-maven-plugin</artifactId>
-                <version>1.3.1</version>
                 <executions>
                     <execution>
                         <id>assemble</id>
@@ -53,15 +62,13 @@
                 <configuration>
                     <repositoryLayout>flat</repositoryLayout>
                     <projectArtifactFirstInClassPath>true</projectArtifactFirstInClassPath>
-                    <!--<useAllProjectDependencies>true</useAllProjectDependencies>-->
-                    <!--<useWildcardClassPath>true</useWildcardClassPath>-->
-                    <extraJvmArguments>-Xms1g -Xmx2g -XX:MaxPermSize=256m
-                        -XX:+UseParallelOldGC -XX:+UseCompressedOops
-                        -XX:MaxDirectMemorySize=10G
+                    <useWildcardClassPath>true</useWildcardClassPath>
+                    <extraJvmArguments>-Xms${appassembler.jvm.heap.min} -Xmx${appassembler.jvm.heap.max}
+                        -XX:MaxDirectMemorySize=${appassembler.jvm.offheap.max}
                         -Dehcache.config.path=${ehcache.config.path}
                         -Dcom.tc.productkey.path=${ehcache.ee.license}
                         -Dtc.config.url=${tc.config.url}
-                        -Dehcache.obj.value.size=4096
+                        -Dehcache.obj.value.size=${appassembler.app.obj.value.size}
                         -Dehcache.put.writeLocks=false
                         -Dehcache.get.readLocks=false
                         -DCacheProviderFactoryClass=${cache.loaders.CacheProviderFactoryClass}
@@ -69,49 +76,65 @@
                     <programs>
                         <program>
                             <mainClass>gov.sag.cache.loaders.maindriver.Main</mainClass>
-                            <name>LaunchGeneric</name>
+                            <id>LaunchGeneric</id>
+                            <jvmSettings>
+                                <extraArguments></extraArguments>
+                            </jvmSettings>
                         </program>
                         <program>
                             <mainClass>gov.sag.cache.loaders.maindriver.Main</mainClass>
-                            <name>LaunchDefault</name>
+                            <id>LaunchWithDefaultCache</id>
+                            <commandLineArguments>
+                                <commandLineArgument>-c testCache</commandLineArgument>
+                            </commandLineArguments>
+                        </program>
+                        <program>
+                            <mainClass>gov.sag.cache.loaders.maindriver.Main</mainClass>
+                            <id>LaunchDefault</id>
+                            <commandLineArguments>
+                                <commandLineArgument>-c testCache</commandLineArgument>
+                                <commandLineArgument>--empty-cache</commandLineArgument>
+                                <commandLineArgument>--fill-cache</commandLineArgument>
+                                <commandLineArgument>--fill-thread-count 5</commandLineArgument>
+                                <commandLineArgument>--entries ${appassembler.app.obj.count.max}</commandLineArgument>
+                                <commandLineArgument>-r 2</commandLineArgument>
+                                <commandLineArgument>-w 2</commandLineArgument>
+                                <commandLineArgument>-d 2</commandLineArgument>
+                                <commandLineArgument>-l ${appassembler.app.run.time.seconds}</commandLineArgument>
+                            </commandLineArguments>
+                        </program>
+                        <program>
+                            <mainClass>gov.sag.cache.loaders.maindriver.Main</mainClass>
+                            <id>LaunchFillCacheOnly</id>
                             <commandLineArguments>
                                 <commandLineArgument>-c testCache</commandLineArgument>
                                 <commandLineArgument>--empty-cache</commandLineArgument>
                                 <commandLineArgument>--fill-cache</commandLineArgument>
                                 <commandLineArgument>--fill-thread-count 10</commandLineArgument>
-                                <commandLineArgument>--entries 1000000</commandLineArgument>
+                                <commandLineArgument>--entries ${appassembler.app.obj.count.max}</commandLineArgument>
+                            </commandLineArguments>
+                        </program>
+                        <program>
+                            <mainClass>gov.sag.cache.loaders.maindriver.Main</mainClass>
+                            <id>LaunchHighVolumeNoFill</id>
+                            <commandLineArguments>
+                                <commandLineArgument>-c testCache</commandLineArgument>
+                                <commandLineArgument>--entries ${appassembler.app.obj.count.max}</commandLineArgument>
                                 <commandLineArgument>-r 10</commandLineArgument>
                                 <commandLineArgument>-w 10</commandLineArgument>
                                 <commandLineArgument>-d 10</commandLineArgument>
+                                <commandLineArgument>-l ${appassembler.app.run.time.seconds}</commandLineArgument>
                             </commandLineArguments>
                         </program>
                         <program>
                             <mainClass>gov.sag.cache.loaders.maindriver.Main</mainClass>
-                            <name>LaunchWithDefaultCache</name>
-                            <commandLineArguments>
-                                <commandLineArgument>-c testCache</commandLineArgument>
-                            </commandLineArguments>
-                        </program>
-                        <program>
-                            <mainClass>gov.sag.cache.loaders.maindriver.Main</mainClass>
-                            <name>LaunchFillCacheOnly</name>
-                            <commandLineArguments>
-                                <commandLineArgument>-c testCache</commandLineArgument>
-                                <commandLineArgument>--empty-cache</commandLineArgument>
-                                <commandLineArgument>--fill-cache</commandLineArgument>
-                                <commandLineArgument>--fill-thread-count 10</commandLineArgument>
-                                <commandLineArgument>--entries 1000000</commandLineArgument>
-                            </commandLineArguments>
-                        </program>
-                        <program>
-                            <mainClass>gov.sag.cache.loaders.maindriver.Main</mainClass>
-                            <name>LaunchWriteBehindTest</name>
+                            <id>LaunchWriteBehindTest</id>
                             <commandLineArguments>
                                 <commandLineArgument>-c testWriteBehind</commandLineArgument>
                                 <commandLineArgument>--empty-cache</commandLineArgument>
-                                <commandLineArgument>-e 1000000</commandLineArgument>
+                                <commandLineArgument>-e ${appassembler.app.obj.count.max}</commandLineArgument>
                                 <commandLineArgument>-w 8</commandLineArgument>
-                                <commandLineArgument>-l 300</commandLineArgument>
+                                <commandLineArgument>-l ${appassembler.app.run.time.seconds}</commandLineArgument>
                                 <commandLineArgument>--sleep-before-exit=600</commandLineArgument>
                             </commandLineArguments>
                             <jvmSettings>
@@ -122,7 +145,7 @@
                                     <extraArgument>-XX:MaxDirectMemorySize=10G</extraArgument>
                                     <extraArgument>-Dcom.tc.productkey.path=${ehcache.ee.license}</extraArgument>
                                     <extraArgument>-Dtc.config.url=${tc.config.url}</extraArgument>
-                                    <extraArgument>-Dehcache.obj.value.size=4096</extraArgument>
+                                    <extraArgument>-Dehcache.obj.value.size=${appassembler.app.obj.value.size}</extraArgument>
                                     <extraArgument>-Dehcache.config.path=classpath:/ehcache210-writebehind.xml</extraArgument>
                                     <extraArgument>-Dehcache.put.usewriter=true</extraArgument>
                                 </extraArguments>
@@ -137,9 +160,6 @@
     <profiles>
         <profile>
             <id>ehcache2-oss-standalone</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
             <properties>
                 <ehcache.version>2.10.0</ehcache.version>
                 <ehcache.config.path>classpath:ehcache.xml</ehcache.config.path>
@@ -177,10 +197,9 @@
         <profile>
             <id>ehcache2-ee-standalone</id>
             <properties>
-                <ehcache.version>2.10.4.1.4</ehcache.version>
+                <ehcache.version>2.10.4.3.15</ehcache.version>
                 <ehcache.ee.license>${user.home}/terracotta-license.key</ehcache.ee.license>
-                <net.sf.ehcache.configurationResourceName>classpath:ehcache-ee.xml
-                </net.sf.ehcache.configurationResourceName>
+                <ehcache.config.path>classpath:ehcache-ee.xml</ehcache.config.path>
             </properties>
             <dependencies>
                 <!-- EhCache -->
@@ -194,11 +213,10 @@
         <profile>
             <id>ehcache2-ee-clustered</id>
             <properties>
-                <ehcache.version>2.10.4.1.4</ehcache.version>
-                <toolkit.version>4.3.4.1.4</toolkit.version>
+                <ehcache.version>2.10.4.3.15</ehcache.version>
+                <toolkit.version>4.3.4.3.15</toolkit.version>
                 <ehcache.ee.license>${user.home}/terracotta-license.key</ehcache.ee.license>
-                <net.sf.ehcache.configurationResourceName>classpath:ehcache-ee-clustered.xml
-                </net.sf.ehcache.configurationResourceName>
+                <ehcache.config.path>classpath:ehcache-ee-clustered.xml</ehcache.config.path>
             </properties>
             <dependencies>
                 <!-- EhCache -->

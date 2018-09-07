@@ -32,7 +32,14 @@ public class Main {
         final TestCase cacheTest = new CacheTestCase(cacheFactory, po);
 
         System.out.println("############### Starting test");
-        cacheTest.runTest();
+
+        try {
+            cacheTest.init();
+            cacheTest.runTest();
+        } finally{
+            cacheTest.cleanup();
+        }
+
         System.out.println("############### Ending test");
 
         if(po.getSleepBeforeExit() > 0) {

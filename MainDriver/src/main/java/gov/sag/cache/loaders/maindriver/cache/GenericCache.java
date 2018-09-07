@@ -1,8 +1,5 @@
 package gov.sag.cache.loaders.maindriver.cache;
 
-import java.io.Closeable;
-
-
 public interface GenericCache<K, V> {
 
     String getName();
@@ -19,11 +16,15 @@ public interface GenericCache<K, V> {
 
     V getWithLock(K key, long lockTimeout);
 
-    void batchPut(Runnable operation);
-
     void delete(K key);
 
     long getSize();
 
     void clear();
+
+    boolean isBulkLoadAvailable();
+
+    void enableBulkLoad();
+
+    void disableBulkLoad();
 }
