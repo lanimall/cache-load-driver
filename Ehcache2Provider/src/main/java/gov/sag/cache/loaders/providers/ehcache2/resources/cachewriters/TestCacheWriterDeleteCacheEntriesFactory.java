@@ -1,6 +1,5 @@
 package gov.sag.cache.loaders.providers.ehcache2.resources.cachewriters;
 
-import gov.sag.cache.loaders.maindriver.metrics.WorkerStatisticsController;
 import gov.sag.cache.loaders.providers.ehcache2.metrics.EhcacheWriterStatisticsController;
 import net.sf.ehcache.Ehcache;
 import net.sf.ehcache.writer.CacheWriter;

@@ -4,6 +4,8 @@ import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 
+import java.util.concurrent.TimeUnit;
+
 
 public class WorkerStatisticsController extends BaseStatisticsController {
 
@@ -56,48 +58,62 @@ public class WorkerStatisticsController extends BaseStatisticsController {
         }
 
         public WorkerStatistics build() {
-            WorkerStatisticsImpl workerStatistics = new WorkerStatisticsImpl();
+            RequestStatsImpl workerStatistics;
 
-            if (null != requestTimerName && !"".equals(requestTimerName))
-                workerStatistics.requestTimer = getRegistry().timer(requestTimerName);
-
-            if (null != requestWaitsTimerName && !"".equals(requestWaitsTimerName))
+            //this one is more for debug
+            if (null != requestWaitsTimerName && !"".equals(requestWaitsTimerName)) {
+                workerStatistics = new RequestStatsImpl();
                 workerStatistics.requestWaitsTimer = getRegistry().timer(requestWaitsTimerName);
+            } else {
+                workerStatistics = new RequestStatsNoWaitImpl();
+            }
 
-            if (null != exceptionCounterName && !"".equals(exceptionCounterName))
+            if (null != requestTimerName && !"".equals(requestTimerName)) {
+                workerStatistics.requestTimer = getRegistry().timer(requestTimerName);
+            }
+
+            if (null != exceptionCounterName && !"".equals(exceptionCounterName)) {
                 workerStatistics.exceptionCounter = getRegistry().counter(exceptionCounterName);
+            }
 
             return workerStatistics;
         }
     }
 
-    private class WorkerStatisticsImpl implements WorkerStatistics {
-        private Timer requestTimer = null;
-        private Timer requestWaitsTimer = null;
-        private Counter exceptionCounter = null;
+    private class RequestStatsImpl implements WorkerStatistics {
+        protected Timer requestTimer = null;
+        protected Counter exceptionCounter = null;
+        protected Timer requestWaitsTimer = null;
 
         @Override
-        public Timer getRequestTimer() {
-            return requestTimer;
+        public void addRequestTime(long duration, TimeUnit unit) {
+            requestTimer.update(duration,unit);
         }
 
         @Override
-        public Timer getRequestWaitsTimer() {
-            return requestWaitsTimer;
+        public void addRequestWaitTime(long duration, TimeUnit unit) {
+            requestWaitsTimer.update(duration,unit);
         }
 
         @Override
-        public Counter getExceptionsCounter() {
-            return exceptionCounter;
+        public void addException() {
+            exceptionCounter.inc();
         }
 
         @Override
         public String toString() {
-            return "WorkerStatisticsImpl{" +
-                    "requestTimer=" + ((null !=requestTimer)?requestTimer:"null") +
-                    ", requestWaitsTimer=" + ((null !=requestWaitsTimer)?requestWaitsTimer:"null") +
-                    ", exceptionCounter=" + ((null !=exceptionCounter)?exceptionCounter:"null") +
+            return "RequestStatsImpl{" +
+                    "requestTimer=" + ((null != requestTimer)?requestTimer.toString():"null") +
+                    ", exceptionCounter=" + ((null != exceptionCounter)?exceptionCounter.toString():"null") +
+                    ", requestWaitsTimer=" + ((null != requestWaitsTimer)?requestWaitsTimer.toString():"null") +
                     '}';
+        }
+    }
+
+    private class RequestStatsNoWaitImpl extends RequestStatsImpl {
+        @Override
+        public void addRequestWaitTime(long duration, TimeUnit unit) {
+            ;; //do nothing
         }
     }
 }

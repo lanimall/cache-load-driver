@@ -1,15 +1,12 @@
 package gov.sag.cache.loaders.maindriver.metrics;
 
-import com.codahale.metrics.Counter;
-import com.codahale.metrics.Timer;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by fabien.sanglier on 9/7/18.
  */
 public interface WorkerStatistics {
-    Timer getRequestTimer();
-
-    Timer getRequestWaitsTimer();
-
-    Counter getExceptionsCounter();
+    void addRequestTime(long duration, TimeUnit unit);
+    void addRequestWaitTime(long duration, TimeUnit unit);
+    void addException();
 }

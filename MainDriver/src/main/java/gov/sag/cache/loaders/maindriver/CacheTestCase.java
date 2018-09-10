@@ -1,6 +1,5 @@
 package gov.sag.cache.loaders.maindriver;
 
-import com.codahale.metrics.Timer;
 import gov.sag.cache.loaders.commonutils.RandomUtil;
 import gov.sag.cache.loaders.maindriver.cache.GenericCache;
 import gov.sag.cache.loaders.maindriver.cache.GenericCacheConfiguration;
@@ -8,6 +7,7 @@ import gov.sag.cache.loaders.maindriver.cache.GenericCacheFactory;
 import gov.sag.cache.loaders.maindriver.cache.impl.FileBasedCacheConfiguration;
 import gov.sag.cache.loaders.maindriver.metrics.WorkerStatistics;
 import gov.sag.cache.loaders.maindriver.metrics.WorkerStatisticsController;
+import gov.sag.cache.loaders.maindriver.utils.ObjectSizeFetcherAgent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,9 +86,15 @@ public class CacheTestCase implements TestCase {
         @Override
         public void run() {
             for(long j=offset*partition;j<(offset+1)*partition;j++){
-                Timer.Context ctx = cacheFillStatistics.getRequestTimer().time();
-                cache.put(String.valueOf(j), System.currentTimeMillis() + payload);
-                ctx.stop();
+                try {
+                    long t1 = System.nanoTime();
+                    cache.put(String.valueOf(j), System.currentTimeMillis() + payload);
+                    long t1elapsedNanos = System.nanoTime() - t1;
+
+                    cacheFillStatistics.addRequestTime(t1elapsedNanos, TimeUnit.NANOSECONDS);
+                } catch (Exception exc){
+                    cacheFillStatistics.addException();
+                }
             }
             waitLatch.countDown();
         }
@@ -128,7 +134,12 @@ public class CacheTestCase implements TestCase {
         //get the cache
         final GenericCache cache = cacheFactory.getCache(options.getCache());
 
-        final String payload = new String(new byte[options.getSize()]);
+        final String cacheEntryValuePayload = new String(new byte[options.getSize()]);
+        final String sampleCacheEntryKey = String.valueOf(new RandomUtil(System.nanoTime()).generateRandomLong(options.getEntryCount()));
+
+        //calculate and print size of object for verification/troubleshooting purpose
+        ObjectSizeFetcherAgent.printSize("Object cacheEntryValuePayload", cacheEntryValuePayload);
+        ObjectSizeFetcherAgent.printSize("Object sampleCacheEntryKey", sampleCacheEntryKey);
 
         //start the reporter
         workerStatisticsController.startRegistryReporter();
@@ -141,9 +152,12 @@ public class CacheTestCase implements TestCase {
         if (options.isFillCacheFirst()) {
             fillCache(
                     cache,
-                    payload,
+                    cacheEntryValuePayload,
                     !options.disableBulkLoadOnFill(),
-                    workerStatisticsController.getBuilder().addRequestTimer("fill-requests").build()
+                    workerStatisticsController.getBuilder()
+                            .addRequestTimerWithPrefix("cachefill")
+                            .addExceptionsCounterWithPrefix("cachefill")
+                            .build()
             );
         }
 
@@ -151,9 +165,15 @@ public class CacheTestCase implements TestCase {
         if(options.getWriteThreadCount() > 0) {
             WorkerStatistics workerStatistics = workerStatisticsController.getBuilder()
                     .addRequestTimerWithPrefix("writes")
-                    .addRequestWaitsTimerWithPrefix("writes")
                     .addExceptionsCounterWithPrefix("writes")
                     .build();
+
+            if(logger.isDebugEnabled())
+                workerStatistics = workerStatisticsController.getBuilder()
+                        .addRequestTimerWithPrefix("writes")
+                        .addExceptionsCounterWithPrefix("writes")
+                        .addRequestWaitsTimerWithPrefix("writes")
+                        .build();
 
             logger.info("Starting {} write Workers with write locks settings = {}", options.getWriteThreadCount(), useWriteLocksOnPuts);
             logger.info("Rate limiting = {} requests/second", options.getWriteRequestsPerSecond());
@@ -167,7 +187,7 @@ public class CacheTestCase implements TestCase {
 
                         @Override
                         public Object call() throws Exception {
-                            cache.putWithWriter(String.valueOf(rdm.generateRandomLong(options.getEntryCount())), rdm.generateRandomDouble() + payload);
+                            cache.putWithWriter(String.valueOf(rdm.generateRandomLong(options.getEntryCount())), rdm.generateRandomDouble() + cacheEntryValuePayload);
                             return null;
                         }
                     }));
@@ -178,7 +198,7 @@ public class CacheTestCase implements TestCase {
 
                             @Override
                             public Object call() throws Exception {
-                                cache.putWithLock(String.valueOf(rdm.generateRandomLong(options.getEntryCount())), rdm.generateRandomDouble() + payload, writeLocksOnPutsTimout);
+                                cache.putWithLock(String.valueOf(rdm.generateRandomLong(options.getEntryCount())), rdm.generateRandomDouble() + cacheEntryValuePayload, writeLocksOnPutsTimout);
                                 return null;
                             }
                         }));
@@ -188,7 +208,7 @@ public class CacheTestCase implements TestCase {
 
                             @Override
                             public Object call() throws Exception {
-                                cache.put(String.valueOf(rdm.generateRandomLong(options.getEntryCount())), rdm.generateRandomDouble() + payload);
+                                cache.put(String.valueOf(rdm.generateRandomLong(options.getEntryCount())), rdm.generateRandomDouble() + cacheEntryValuePayload);
                                 return null;
                             }
                         }));
@@ -204,9 +224,15 @@ public class CacheTestCase implements TestCase {
         if(options.getDeleteThreadCount() > 0) {
             WorkerStatistics workerStatistics = workerStatisticsController.getBuilder()
                     .addRequestTimerWithPrefix("deletes")
-                    .addRequestWaitsTimerWithPrefix("deletes")
                     .addExceptionsCounterWithPrefix("deletes")
                     .build();
+
+            if(logger.isDebugEnabled())
+                workerStatistics = workerStatisticsController.getBuilder()
+                        .addRequestTimerWithPrefix("deletes")
+                        .addExceptionsCounterWithPrefix("deletes")
+                        .addRequestWaitsTimerWithPrefix("deletes")
+                        .build();
 
             logger.info("Starting {} delete Workers", options.getDeleteThreadCount());
             logger.info("Rate limiting = {} requests/second", options.getDeleteRequestsPerSecond());
@@ -233,9 +259,15 @@ public class CacheTestCase implements TestCase {
         if(options.getReadThreadCount() > 0) {
             WorkerStatistics workerStatistics = workerStatisticsController.getBuilder()
                     .addRequestTimerWithPrefix("reads")
-                    .addRequestWaitsTimerWithPrefix("reads")
                     .addExceptionsCounterWithPrefix("reads")
                     .build();
+
+            if(logger.isDebugEnabled())
+                workerStatistics = workerStatisticsController.getBuilder()
+                        .addRequestTimerWithPrefix("reads")
+                        .addExceptionsCounterWithPrefix("reads")
+                        .addRequestWaitsTimerWithPrefix("reads")
+                        .build();
 
             logger.info("Starting {} read Workers with Read locks = {}", options.getReadThreadCount(), useReadLocksOnGets);
             logger.info("Rate limiting Total = {} requests/second", options.getReadRequestsPerSecond());

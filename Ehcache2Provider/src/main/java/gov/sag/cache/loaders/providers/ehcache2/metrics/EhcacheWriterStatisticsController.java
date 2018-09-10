@@ -2,9 +2,7 @@ package gov.sag.cache.loaders.providers.ehcache2.metrics;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.Timer;
 import gov.sag.cache.loaders.maindriver.metrics.BaseStatisticsController;
-import gov.sag.cache.loaders.maindriver.metrics.WorkerStatistics;
 
 public class EhcacheWriterStatisticsController extends BaseStatisticsController {
 

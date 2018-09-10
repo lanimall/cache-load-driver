@@ -1,8 +1,6 @@
 package gov.sag.cache.loaders.providers.ehcache2.resources.cachewriters;
 
-import com.codahale.metrics.ConsoleReporter;
 import gov.sag.cache.loaders.providers.ehcache2.metrics.EhcacheWriterStatistics;
-import gov.sag.cache.loaders.providers.ehcache2.metrics.EhcacheWriterStatisticsController;
 import net.sf.ehcache.CacheEntry;
 import net.sf.ehcache.CacheException;
 import net.sf.ehcache.Ehcache;
@@ -13,7 +11,6 @@ import net.sf.ehcache.writer.writebehind.operations.SingleOperationType;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 
 public class TestCacheWriterDeleteCacheEntries implements CacheWriter {

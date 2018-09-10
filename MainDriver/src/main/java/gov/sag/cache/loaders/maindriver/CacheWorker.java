@@ -1,6 +1,5 @@
 package gov.sag.cache.loaders.maindriver;
 
-import com.codahale.metrics.Timer.Context;
 import gov.sag.cache.loaders.maindriver.metrics.WorkerStatistics;
 
 import java.util.concurrent.Callable;
@@ -50,22 +49,24 @@ public class CacheWorker extends Thread {
                 try {
                     long t1 = System.nanoTime();
                     callable.call();
-                    long elapsedNanos = System.nanoTime() - t1;
+                    long t1elapsedNanos = System.nanoTime() - t1;
 
                     //update the timer
-                    workerStatistics.getRequestTimer().update(elapsedNanos, TimeUnit.NANOSECONDS);
+                    workerStatistics.addRequestTime(t1elapsedNanos, TimeUnit.NANOSECONDS);
 
                     //if operation time is faster than the targetDurationRequest, sleep a bit
-                    timeToWaitInMillis = Math.round((targetDurationRequestInNanos - elapsedNanos) / Math.pow(10, 6));
+                    timeToWaitInMillis = Math.round((targetDurationRequestInNanos - t1elapsedNanos) / Math.pow(10, 6));
                     if (timeToWaitInMillis > 0L) {
-                        Context ctx = workerStatistics.getRequestWaitsTimer().time();
+                        long t2 = System.nanoTime();
                         sleep(timeToWaitInMillis);
-                        ctx.stop();
+                        long t2elapsedNanos = System.nanoTime() - t2;
+
+                        workerStatistics.addRequestWaitTime(t2elapsedNanos, TimeUnit.NANOSECONDS);
                     }
                 } catch (InterruptedException ex) {
                     interrupt();
                 } catch (Exception e) {
-                    workerStatistics.getExceptionsCounter().inc();
+                    workerStatistics.addException();
                 } finally{
                     Thread.currentThread().yield();
                 }
@@ -73,11 +74,16 @@ public class CacheWorker extends Thread {
         } else {
             while (isRunning) {
                 try {
-                    workerStatistics.getRequestTimer().time(callable);
+                    long t1 = System.nanoTime();
+                    callable.call();
+                    long t1elapsedNanos = System.nanoTime() - t1;
+
+                    //update the timer
+                    workerStatistics.addRequestTime(t1elapsedNanos, TimeUnit.NANOSECONDS);
                 } catch (InterruptedException ex) {
                     interrupt();
                 } catch (Exception e) {
-                    workerStatistics.getExceptionsCounter().inc();
+                    workerStatistics.addException();
                 } finally{
                     Thread.currentThread().yield();
                 }
