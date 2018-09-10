@@ -76,18 +76,21 @@ public class EhcacheWriterStatisticsController extends BaseStatisticsController 
         private Counter writeRequests = null;
 
         @Override
-        public Counter getThrowAwayRequests() {
-            return throwAwayRequests;
+        public void addThrowAwayRequest() {
+            if(null != throwAwayRequests)
+                throwAwayRequests.inc();
         }
 
         @Override
-        public Counter getDeleteRequests() {
-            return deleteRequests;
+        public void addDeleteRequest() {
+            if(null != deleteRequests)
+                deleteRequests.inc();
         }
 
         @Override
-        public Counter getWriteRequests() {
-            return writeRequests;
+        public void addWriteRequest() {
+            if(null != writeRequests)
+                writeRequests.inc();
         }
     }
 }

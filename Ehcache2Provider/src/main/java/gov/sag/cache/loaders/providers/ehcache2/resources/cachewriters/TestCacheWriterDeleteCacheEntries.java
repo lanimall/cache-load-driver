@@ -31,7 +31,7 @@ public class TestCacheWriterDeleteCacheEntries implements CacheWriter {
 
     @Override
     public void throwAway(Element element, SingleOperationType singleOperationType, RuntimeException e) {
-        statistics.getThrowAwayRequests().inc();
+        statistics.addThrowAwayRequest();
     }
 
     @Override
@@ -42,13 +42,13 @@ public class TestCacheWriterDeleteCacheEntries implements CacheWriter {
 
     @Override
     public void delete(CacheEntry arg0) throws CacheException {
-        statistics.getDeleteRequests().inc();
+        statistics.addDeleteRequest();
     }
 
     @Override
     public void deleteAll(Collection<CacheEntry> arg0) throws CacheException {
         for(CacheEntry e : arg0)
-            statistics.getDeleteRequests().inc();
+            statistics.addDeleteRequest();
     }
 
     @Override
@@ -59,7 +59,7 @@ public class TestCacheWriterDeleteCacheEntries implements CacheWriter {
     public void write(Element e) throws CacheException {
         //parentCache.removeElement(e); //CAS
         parentCache.remove(e.getObjectKey());
-        statistics.getWriteRequests().inc();
+        statistics.addWriteRequest();
     }
 
     @Override
@@ -71,6 +71,6 @@ public class TestCacheWriterDeleteCacheEntries implements CacheWriter {
         parentCache.removeAll(elementKeySet);
 
         for(Element e : elements)
-            statistics.getWriteRequests().inc();
+            statistics.addWriteRequest();
     }
 }

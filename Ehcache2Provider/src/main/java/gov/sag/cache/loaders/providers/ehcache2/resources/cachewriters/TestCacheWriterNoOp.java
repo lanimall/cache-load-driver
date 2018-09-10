@@ -29,7 +29,7 @@ public class TestCacheWriterNoOp implements CacheWriter {
 
     @Override
     public void throwAway(Element element, SingleOperationType singleOperationType, RuntimeException e) {
-        statistics.getThrowAwayRequests().inc();
+        statistics.addThrowAwayRequest();
     }
 
     @Override
@@ -40,7 +40,7 @@ public class TestCacheWriterNoOp implements CacheWriter {
 
     @Override
     public void delete(CacheEntry arg0) throws CacheException {
-        statistics.getDeleteRequests().inc();
+        statistics.addDeleteRequest();
     }
 
     @Override
@@ -55,7 +55,7 @@ public class TestCacheWriterNoOp implements CacheWriter {
 
     @Override
     public void write(Element arg0) throws CacheException {
-        statistics.getWriteRequests().inc();
+        statistics.addWriteRequest();
     }
 
     @Override
