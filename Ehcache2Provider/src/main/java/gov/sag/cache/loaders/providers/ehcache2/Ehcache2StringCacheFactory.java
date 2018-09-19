@@ -46,7 +46,11 @@ public class Ehcache2StringCacheFactory implements GenericCacheFactory<String, S
     }
 
     @Override
-    public void shutdown() {
+    public synchronized void shutdown() {
+        if(null == cacheManager)
+            throw new IllegalArgumentException("Cache manager should not be null...make sure you called init() first, or Check logs for errors");
+
         cacheManager.shutdown();
+        cacheManager = null;
     }
 }

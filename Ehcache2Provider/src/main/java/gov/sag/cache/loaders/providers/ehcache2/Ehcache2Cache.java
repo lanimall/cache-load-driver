@@ -3,17 +3,18 @@ package gov.sag.cache.loaders.providers.ehcache2;
 import gov.sag.cache.loaders.maindriver.cache.GenericCache;
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.CacheManager;
+import net.sf.ehcache.Ehcache;
 import net.sf.ehcache.Element;
 
 public class Ehcache2Cache<K, V> implements GenericCache<K, V> {
 
-    private final Cache cache;
+    private final Ehcache cache;
 
     public Ehcache2Cache(final CacheManager cacheManager, final String cacheName) {
         if(!cacheManager.cacheExists(cacheName))
             throw new IllegalArgumentException("cache not found");
 
-        this.cache = cacheManager.getCache(cacheName);
+        this.cache = cacheManager.getEhcache(cacheName);
     }
 
     @Override
