@@ -11,14 +11,6 @@ public class CacheProviderFactory {
         if(null == className || "".equals(className))
             throw new IllegalArgumentException("Must provide a valid class name");
 
-//        URLClassLoader child = new URLClassLoader (
-//                new URL[] {
-//                        new URL("file:/Users/fabien.sanglier/MyDev/MyCodeMisc/Terracotta/CacheLoaders/EhcacheLoader/Ehcache2Provider/target/appassembler/repo/MainDriver-1.0.0.jar"),
-//                        new URL("file:/Users/fabien.sanglier/MyDev/MyCodeMisc/Terracotta/CacheLoaders/EhcacheLoader/Ehcache2Provider/target/appassembler/repo/MainDriver-1.0.0.jar")
-//                }, CacheProviderFactory.class.getClassLoader());
-//
-//        Class clazz = Class.forName(className, true, child);
-
         Class clazz = Class.forName(className);
 
         if (!GenericCacheFactory.class.isAssignableFrom(clazz))
