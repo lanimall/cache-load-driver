@@ -17,8 +17,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-public class CacheTestCase implements TestCase {
-    private final Logger logger = LoggerFactory.getLogger(CacheTestCase.class);
+public class DataSteadyOpsTestCase implements TestCase {
+    private final Logger logger = LoggerFactory.getLogger(DataSteadyOpsTestCase.class);
 
     private static final boolean usePutWithWriter = Boolean.parseBoolean(System.getProperty("ehcache.put.usewriter", "false"));
     private static final boolean useWriteLocksOnPuts = Boolean.parseBoolean(System.getProperty("ehcache.put.writeLocks", "false"));
@@ -27,6 +27,7 @@ public class CacheTestCase implements TestCase {
     private static final long readLocksOnGetsTimout = Long.parseLong(System.getProperty("ehcache.get.readLocks.timeout", "10000"));
 
     private final GenericCacheFactory cacheFactory;
+    private GenericCache cache;
     private final ProgramOptions options;
 
     private final List<CacheWorker> workerList;
@@ -35,7 +36,7 @@ public class CacheTestCase implements TestCase {
     //instantiate the main statistics controller
     WorkerStatisticsController workerStatisticsController = new WorkerStatisticsController();
 
-    public CacheTestCase(final GenericCacheFactory cacheFactory, ProgramOptions programOptions) {
+    public DataSteadyOpsTestCase(final GenericCacheFactory cacheFactory, ProgramOptions programOptions) {
         this.options = programOptions;
         this.cacheFactory = cacheFactory;
         this.stopLatch = new CountDownLatch(options.getReadThreadCount() + options.getWriteThreadCount() + options.getDeleteThreadCount());
@@ -45,6 +46,7 @@ public class CacheTestCase implements TestCase {
             @Override
             public void run() {
                 logger.info("Stop Worker-Threads...");
+
                 for (CacheWorker worker : workerList) {
                     worker.interrupt();
                 }
@@ -61,81 +63,31 @@ public class CacheTestCase implements TestCase {
         });
     }
 
-    public void clearCache(GenericCache cache) {
-        logger.info("Clearing cache {}", cache.getName());
-        cache.clear();
-    }
-
-    class partitionedCacheFiller implements Runnable {
-        private final int offset;
-        private final long partition;
-        private final CountDownLatch waitLatch;
-        private final GenericCache<String, String> cache;
-        private final String payload;
-        private final WorkerStatistics cacheFillStatistics;
-
-        partitionedCacheFiller(final int offset, final long partition, final CountDownLatch waitLatch, final GenericCache<String, String> cache, final String payload, WorkerStatistics cacheFillStatistics) {
-            this.offset = offset;
-            this.partition = partition;
-            this.waitLatch = waitLatch;
-            this.cache = cache;
-            this.payload = payload;
-            this.cacheFillStatistics = cacheFillStatistics;
-        }
-
-        @Override
-        public void run() {
-            for(long j=offset*partition;j<(offset+1)*partition;j++){
-                try {
-                    long t1 = System.nanoTime();
-                    cache.put(String.valueOf(j), System.currentTimeMillis() + payload);
-                    long t1elapsedNanos = System.nanoTime() - t1;
-
-                    cacheFillStatistics.addRequestTime(t1elapsedNanos, TimeUnit.NANOSECONDS);
-                } catch (Exception exc){
-                    cacheFillStatistics.addException();
-                }
-            }
-            waitLatch.countDown();
-        }
-    }
-
-    private void fillCache(GenericCache cache, String payload, final boolean useBulkLoad, WorkerStatistics cacheFillStatistics) throws InterruptedException {
-        try {
-            if (useBulkLoad && cache.isBulkLoadAvailable()) {
-                logger.info("Enabling BulkLoading for cache {}", cache.getName());
-                cache.enableBulkLoad();
-            }
-
-            logger.info("Adding {} entries in cache {} with {} concurrent threads", options.getEntryCount(), options.getCache(), options.getFillCacheThreadCount());
-            final long partition = options.getEntryCount() / options.getFillCacheThreadCount();
-            final CountDownLatch waitLatch = new CountDownLatch(options.getFillCacheThreadCount());
-            for (int i = 0; i < options.getFillCacheThreadCount(); i++) {
-                new Thread(new partitionedCacheFiller(new Integer(i), partition, waitLatch, cache, payload, cacheFillStatistics)).start();
-            }
-
-            logger.info("Bulk load in progress for cache {}", cache.getName());
-            waitLatch.await();
-            logger.info("Bulk load done for cache {} - Final Size={}", cache.getName(), cache.getSize());
-        } finally {
-            if (useBulkLoad && cache.isBulkLoadAvailable()) {
-                logger.info("Disabling BulkLoading for cache {}", cache.getName());
-                cache.disableBulkLoad();
-            }
-        }
-    }
-
     @Override
-    public void runTest() throws InterruptedException {
+    public void init() {
         //init the cache from configurations
         GenericCacheConfiguration genericCacheConfiguration = new FileBasedCacheConfiguration(null, options.getCache(), null);
         cacheFactory.init(genericCacheConfiguration);
 
-        //get the cache
-        final GenericCache cache = cacheFactory.getCache(options.getCache());
+        //get the cache instance
+        cache = cacheFactory.getCache(options.getCache());
+    }
 
-        final String cacheEntryValuePayload = new String(new byte[options.getSize()]);
-        final String sampleCacheEntryKey = String.valueOf(new RandomUtil(System.nanoTime()).generateRandomLong(options.getEntryCount()));
+    @Override
+    public void cleanup() {
+        //shutting down
+        cacheFactory.shutdown();
+        cache = null;
+    }
+
+    @Override
+    public void runTest() throws InterruptedException {
+        if(null == cache)
+            throw new IllegalStateException("Cache may not be null...make sure to call init() first.");
+
+        RandomUtil randomUtil = new RandomUtil(System.nanoTime());
+        final String cacheEntryValuePayload = randomUtil.generateAlphaNumericRandom(options.getSize());
+        final String sampleCacheEntryKey = String.valueOf(randomUtil.generateRandomLong(options.getEntryCount()));
 
         //calculate and print size of object for verification/troubleshooting purpose
         ObjectSizeFetcherAgent.printSize("Object cacheEntryValuePayload", cacheEntryValuePayload);
@@ -143,23 +95,6 @@ public class CacheTestCase implements TestCase {
 
         //start the reporter
         workerStatisticsController.startRegistryReporter();
-
-        //perform pre-operations first
-        if (options.isClearCacheFirst()) {
-            clearCache(cache);
-        }
-
-        if (options.isFillCacheFirst()) {
-            fillCache(
-                    cache,
-                    cacheEntryValuePayload,
-                    !options.disableBulkLoadOnFill(),
-                    workerStatisticsController.getBuilder()
-                            .addRequestTimerWithPrefix("cachefill")
-                            .addExceptionsCounterWithPrefix("cachefill")
-                            .build()
-            );
-        }
 
         // write worker
         if(options.getWriteThreadCount() > 0) {
@@ -312,16 +247,5 @@ public class CacheTestCase implements TestCase {
 
         //stop reporter
         workerStatisticsController.stopRegistryReporter();
-    }
-
-    @Override
-    public void init() {
-        ;;
-    }
-
-    @Override
-    public void cleanup() {
-        //shutting down
-        cacheFactory.shutdown();
     }
 }
