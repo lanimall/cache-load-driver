@@ -14,6 +14,7 @@
     <properties>
         <cache.loaders.CacheProviderFactoryClass>gov.sag.cache.loaders.providers.ehcache2.Ehcache2StringCacheFactory</cache.loaders.CacheProviderFactoryClass>
         <ehcache.ee.license></ehcache.ee.license>
+        <ehcache.cachename>testCache</ehcache.cachename>
         <tc.config.url>localhost:9510,localhost:9610</tc.config.url>
         <appassembler.jvm.heap.min>1g</appassembler.jvm.heap.min>
         <appassembler.jvm.heap.max>2g</appassembler.jvm.heap.max>
@@ -72,6 +73,7 @@
                         -Dehcache.put.writeLocks=false
                         -Dehcache.get.readLocks=false
                         -DCacheProviderFactoryClass=${cache.loaders.CacheProviderFactoryClass}
+                        -Dmetrics.reporter.type.gov.sag.cache.loaders.maindriver.metrics.WorkerStatisticsController=CONSOLE
                     </extraJvmArguments>
                     <programs>
                         <program>
@@ -85,17 +87,14 @@
                             <mainClass>gov.sag.cache.loaders.maindriver.Main</mainClass>
                             <id>LaunchWithDefaultCache</id>
                             <commandLineArguments>
-                                <commandLineArgument>-c testCache</commandLineArgument>
+                                <commandLineArgument>-c ${ehcache.cachename}</commandLineArgument>
                             </commandLineArguments>
                         </program>
                         <program>
                             <mainClass>gov.sag.cache.loaders.maindriver.Main</mainClass>
-                            <id>LaunchDefault</id>
+                            <id>LaunchDefaultNoFill</id>
                             <commandLineArguments>
-                                <commandLineArgument>-c testCache</commandLineArgument>
-                                <commandLineArgument>--empty-cache</commandLineArgument>
-                                <commandLineArgument>--fill-cache</commandLineArgument>
-                                <commandLineArgument>--fill-thread-count 5</commandLineArgument>
+                                <commandLineArgument>-c ${ehcache.cachename}</commandLineArgument>
                                 <commandLineArgument>--entries ${appassembler.app.obj.count.max}</commandLineArgument>
                                 <commandLineArgument>-r 2</commandLineArgument>
                                 <commandLineArgument>-w 2</commandLineArgument>
@@ -107,7 +106,7 @@
                             <mainClass>gov.sag.cache.loaders.maindriver.Main</mainClass>
                             <id>LaunchFillCacheOnly</id>
                             <commandLineArguments>
-                                <commandLineArgument>-c testCache</commandLineArgument>
+                                <commandLineArgument>-c ${ehcache.cachename}</commandLineArgument>
                                 <commandLineArgument>--empty-cache</commandLineArgument>
                                 <commandLineArgument>--fill-cache</commandLineArgument>
                                 <commandLineArgument>--fill-thread-count 10</commandLineArgument>
@@ -118,7 +117,7 @@
                             <mainClass>gov.sag.cache.loaders.maindriver.Main</mainClass>
                             <id>LaunchHighVolumeNoFill</id>
                             <commandLineArguments>
-                                <commandLineArgument>-c testCache</commandLineArgument>
+                                <commandLineArgument>-c ${ehcache.cachename}</commandLineArgument>
                                 <commandLineArgument>--entries ${appassembler.app.obj.count.max}</commandLineArgument>
                                 <commandLineArgument>-r 10</commandLineArgument>
                                 <commandLineArgument>-w 10</commandLineArgument>
@@ -219,6 +218,34 @@
                 <ehcache.config.path>classpath:ehcache-ee-clustered.xml</ehcache.config.path>
             </properties>
             <dependencies>
+                <!-- EhCache -->
+                <dependency>
+                    <groupId>net.sf.ehcache</groupId>
+                    <artifactId>ehcache-ee</artifactId>
+                    <version>${ehcache.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.terracotta</groupId>
+                    <artifactId>terracotta-toolkit-runtime-ee</artifactId>
+                    <version>${toolkit.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>ehcache2-ee-clustered-decorated</id>
+            <properties>
+                <ehcache.version>2.10.4.3.15</ehcache.version>
+                <toolkit.version>4.3.4.3.15</toolkit.version>
+                <ehcache.ee.license>${user.home}/terracotta-license.key</ehcache.ee.license>
+                <ehcache.config.path>classpath:ehcache-ee-clustered-decorated.xml</ehcache.config.path>
+                <ehcache.cachename>testCacheEhcacheStream</ehcache.cachename>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>org.ehcache.extensions.io</groupId>
+                    <artifactId>ehcache-io</artifactId>
+                    <version>1.2-snapshot</version>
+                </dependency>
                 <!-- EhCache -->
                 <dependency>
                     <groupId>net.sf.ehcache</groupId>

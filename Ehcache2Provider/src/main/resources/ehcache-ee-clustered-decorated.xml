@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<ehcache xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="xsds/ehcache4.xsd" updateCheck="false"
+         monitoring="autodetect" dynamicConfig="true" name="TestCacheManager-Distributed">
+
+    <terracottaConfig url="${tc.config.url}"/>
+
+    <defaultCache eternal="true" overflowToOffHeap="false"/>
+
+    <cache name="testCacheEhcacheStream" maxEntriesLocalHeap="10000"
+           timeToLiveSeconds="1800">
+        <cacheDecoratorFactory
+                class="org.ehcache.extensions.io.EhcacheStreamDecoratorFactory"
+                properties="buffersize=1048576,compression=false,puts_overwrite=true,gets_returnasstream=true"
+                propertySeparator="," />
+
+        <!-- must be pinned inCache to avoid cache entries being thrown out randomly -->
+        <pinning store="inCache"></pinning>
+
+        <!--
+        should be set to strong to keep consistent across the cluster...
+        although eventual could theoretically work too, provided you're ok with some exceptions on read sometimes
+        -->
+        <terracotta consistency="strong">
+            <nonstop immediateTimeout="false" timeoutMillis="30000">
+                <timeoutBehavior type="exception" />
+            </nonstop>
+        </terracotta>
+    </cache>
+</ehcache>
