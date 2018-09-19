@@ -9,6 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Main {
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
@@ -27,20 +29,30 @@ public class Main {
         CacheProviderFactory cacheProviderFactory = new CacheProviderFactory();
         GenericCacheFactory cacheFactory = cacheProviderFactory.create(genericCacheFactoryClassname);
 
-        System.out.println("############### Loading test with Provider Factory:" + cacheFactory.getClass().getName());
+        logger.info("############### Loading tests with Provider Factory:" + cacheFactory.getClass().getName());
 
-        final TestCase cacheTest = new CacheTestCase(cacheFactory, po);
+        List<TestCase> testCases = new ArrayList<TestCase>();
 
-        System.out.println("############### Starting test");
-
-        try {
-            cacheTest.init();
-            cacheTest.runTest();
-        } finally{
-            cacheTest.cleanup();
+        if (po.isFillCacheFirst()) {
+            testCases.add(new DataFillTestCase(cacheFactory, po));
         }
 
-        System.out.println("############### Ending test");
+        if(po.getWriteThreadCount() > 0 || po.getReadThreadCount() > 0 || po.getDeleteThreadCount() > 0) {
+            testCases.add(new DataSteadyOpsTestCase(cacheFactory, po));
+        }
+
+        logger.info("############### Starting tests");
+        for(TestCase testCase : testCases) {
+            try {
+                testCase.init();
+                testCase.runTest();
+            } catch (Exception exc) {
+                logger.error("unexpected error", exc);
+            } finally {
+                testCase.cleanup();
+            }
+        }
+        logger.info("############### Ending tests");
 
         if(po.getSleepBeforeExit() > 0) {
             logger.info("############### Sleeping before exit");
